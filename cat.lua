@@ -1,4 +1,3 @@
-
 -- cats.lua — cozy cats for Neovim
 -- partner's herd: status cat, wander cat, walk cat
 
@@ -145,7 +144,8 @@ end
 api.nvim_create_autocmd("InsertEnter", {
   callback = function()
     if not status.active then return end
-    if has_errors() then status_set(bad_cat) else status_insert_anim() end
+    -- if has_errors() then status_set(bad_cat) else status_insert_anim() end
+    status_insert_anim()
   end,
 })
 
@@ -187,21 +187,19 @@ vim.api.nvim_create_autocmd("ModeChanged", {
   end,
 })
 
-
+-- insert then errors then visual else relax
 api.nvim_create_autocmd("DiagnosticChanged", {
   callback = function()
     if not status.active then return end
-    if has_errors() then
+    local m = fn.mode()
+    if m:match("i") then
+      status_insert_anim()
+    elseif has_errors() then
       status_set(bad_cat)
+    elseif m:match("[vV\22]") then
+      status_set(visual_face)
     else
-      local m = fn.mode()
-      if m:match("i") then
-        status_insert_anim()
-      elseif m:match("[vV\22]") then
-        status_set(visual_face)
-      else
-        status_set(relax_cat)
-      end
+      status_set(relax_cat)
     end
   end,
 })
@@ -268,7 +266,7 @@ local walk = {
   buf = nil, win = nil, timer = nil,
   row = 0, col = 0,
   vx = 1, vy = 0,
-  frame = 1,
+  frame = 2,
 }
 
 local walk_frames = { normal_face, normal2_face }
