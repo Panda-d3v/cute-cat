@@ -3,9 +3,9 @@
 
 local api, fn = vim.api, vim.fn
 
--- =========
+-- =====================================================
 -- Art
--- =========
+-- =====================================================
 local normal_face = {
   [[ /\_/\  ]],
   [[( o.o ) ]],
@@ -36,9 +36,11 @@ local bad_cat = {
   [[ > ^ <  ]],
 }
 
--- =========
+local frames_normal_cat = { normal_face, normal2_face }
+
+-- =====================================================
 -- Utils
--- =========
+-- =====================================================
 local function measure(lines)
   local w = 0
   for _, s in ipairs(lines) do
@@ -92,9 +94,9 @@ local function close_state(state)
   state.win, state.buf = nil, nil
 end
 
--- =========
+-- =====================================================
 -- Status Cat (edge of screen, reacts to mode + diagnostics)
--- =========
+-- =====================================================
 local status = {
   buf = nil,
   win = nil,
@@ -102,6 +104,7 @@ local status = {
   active = true, -- toggle with :CatStatusOn / :CatStatusOff
 }
 
+-- places the top right corner cat
 local function status_show(lines)
   if not status.active then return end
   ensure_buf_win(status, lines, {
@@ -123,9 +126,11 @@ end
 
 local function status_insert_anim()
   if not status.active then return end
-  local frames = { normal_face, normal2_face }
+  local frames = frames_normal_cat
   local i = 1
   if status.timer then fn.timer_stop(status.timer) end
+  status_show(frames[i])
+  i = i % #frames + 1
   status.timer = fn.timer_start(600, function()
     vim.schedule(function()
       if not status.active then return end
@@ -187,7 +192,7 @@ vim.api.nvim_create_autocmd("ModeChanged", {
   end,
 })
 
--- insert then errors then visual else relax
+-- insert ; errors ; visual ; else relax
 api.nvim_create_autocmd("DiagnosticChanged", {
   callback = function()
     if not status.active then return end
@@ -205,6 +210,7 @@ api.nvim_create_autocmd("DiagnosticChanged", {
 })
 
 -- start relaxed by default
+-- where the program starts
 vim.schedule(function() status_set(relax_cat) end)
 
 api.nvim_create_user_command("CatStatusOff", function()
@@ -217,9 +223,9 @@ api.nvim_create_user_command("CatStatusOn", function()
   status_set(relax_cat)
 end, {})
 
--- =========
+-- ========================================================================
 -- Wander Cat (teleports every 2s)
--- =========
+-- ========================================================================
 local wander = { buf = nil, win = nil, timer = nil, shown = false }
 
 local function wander_start()
@@ -259,103 +265,109 @@ local function wander_stop()
 end
 
 
--- =========
+-- ========================================================================
 -- Walk Cat (natural: slows, speeds, pauses)
--- =========
-local walk = {
-  buf = nil, win = nil, timer = nil,
-  row = 0, col = 0,
-  vx = 1, vy = 0,
-  frame = 2,
-}
+-- ========================================================================
 
-local walk_frames = { normal_face, normal2_face }
+local all_walkers = {}
 
-local function walk_step()
-  if not (walk.win and api.nvim_win_is_valid(walk.win)) then return end
+local function start_walker()
+  local max_r = math.max(0,vim.o.lines - 3)
+  local max_c = math.max(0,vim.o.columns - 7)
 
-  local max_r = math.max(0, vim.o.lines - 3)
-  local max_c = math.max(0, vim.o.columns - 7)
+  local walk = {
+    row = math.random(0,max_r),
+    col = math.random(0,max_c),
+    vx = (math.random() < 0.5) and 1 or -1,
+    vy = 0,
+    frame = 1,
+  }
+  local frames = frames_normal_cat
 
-  -- random pause
-  if math.random() < 0.15 then
-    -- still animate while paused
-    walk.frame = walk.frame % #walk_frames + 1
-    set_lines(walk, walk_frames[walk.frame])
-    return math.random(400, 1000) -- pause duration
+  ensure_buf_win(walk, frames[walk.frame], {row = walk.row, col = walk.col})
+
+  local function loop()
+    if not (walk.win and api.nvim_win_is_valid(walk.win)) then return end
+    local delay = 0
+    -- random pause
+    if math.random() < 0.15 then
+      -- still animate while paused
+      walk.frame = walk.frame % #frames + 1
+      set_lines(walk, frames[walk.frame])
+      delay = math.random(400, 1000)
+    else
+
+      -- small chance to drift up/down
+      if math.random() < 0.2 then
+        walk.vy = walk.vy + (math.random(0,1) == 0 and -1 or 1)
+      end
+
+      -- keep vy small
+      if walk.vy > 1 then walk.vy = 1 elseif walk.vy < -1 then walk.vy = -1 end
+
+      -- move
+      local new_row = math.max(0, math.min(max_r, walk.row + walk.vy))
+      local new_col = math.max(0, math.min(max_c, walk.col + walk.vx))
+
+      -- bounce at edges
+      if new_col == 0 or new_col == max_c then
+        walk.vx = -walk.vx
+      end
+      if new_row == 0 or new_row == max_r then
+        walk.vy = -walk.vy
+      end
+
+      walk.row, walk.col = new_row, new_col
+
+      api.nvim_win_set_config(walk.win, {
+        relative = "editor",
+        row = walk.row,
+        col = walk.col,
+        width = 7,
+        height = 3,
+      })
+
+      -- animate cat frame
+      walk.frame = walk.frame % #frames + 1
+      set_lines(walk, frames[walk.frame])
+
+      -- Reschedule with random interval
+      delay = math.random(150, 600)
+
+    end
+    walk.timer = vim.fn.timer_start(delay, function() vim.schedule(loop) end)
   end
 
-  -- small chance to drift up/down
-  if math.random() < 0.2 then
-    walk.vy = walk.vy + (math.random(0,1) == 0 and -1 or 1)
-  end
-
-  -- keep vy small
-  if walk.vy > 1 then walk.vy = 1 elseif walk.vy < -1 then walk.vy = -1 end
-
-  -- move
-  local new_row = math.max(0, math.min(max_r, walk.row + walk.vy))
-  local new_col = math.max(0, math.min(max_c, walk.col + walk.vx))
-
-  -- bounce at edges
-  if new_col == 0 or new_col == max_c then
-    walk.vx = -walk.vx
-    new_row = math.random(0, max_r) -- hop to new lane
-  end
-  if new_row == 0 or new_row == max_r then
-    walk.vy = -walk.vy
-  end
-
-  walk.row, walk.col = new_row, new_col
-
-  api.nvim_win_set_config(walk.win, {
-    relative = "editor",
-    row = walk.row,
-    col = walk.col,
-    width = 7,
-    height = 3,
-  })
-
-  -- animate cat frame
-  walk.frame = walk.frame % #walk_frames + 1
-  set_lines(walk, walk_frames[walk.frame])
-
-  -- return next step interval
-  return math.random(120, 600) -- ms: varies speed each tick
+  loop()
+  table.insert(all_walkers, walk)
 end
 
-local function walk_loop()
-  local delay = walk_step()
-  walk.timer = vim.fn.timer_start(delay, function()
-    vim.schedule(walk_loop)
-  end)
-end
 
-local function walk_start()
-  if walk.timer then
-    print("Walk cat already active 🐈")
-    return
+local function spawn_walkers(n)
+  n = tonumber(n) or 1
+  for _ = 1, n do
+    start_walker()
   end
-  walk.row = math.random(0, math.max(0, vim.o.lines - 3))
-  walk.col = 0
-  walk.vx, walk.vy = 1, 0
-  walk.frame = 1
-  ensure_buf_win(walk, walk_frames[walk.frame], { row = walk.row, col = walk.col })
-  walk_loop()
 end
 
-local function walk_stop()
-  close_state(walk)
-end
-
--- =========
+-- ========================================================================
+-- ========================================================================
 -- Commands
--- =========
-api.nvim_create_user_command("CatSummon", function() wander_start() end, {})
-api.nvim_create_user_command("CatWalk", function() walk_start() end, {})
+-- ========================================================================
+-- ========================================================================
+
+api.nvim_create_user_command("CatTeleport", function() wander_start() end, {})
+
+-- Make plenty of cats able to walk
+api.nvim_create_user_command("CatWalk", function(opts) spawn_walkers(opts.args) end, { nargs= "?"})
+
+-- Dismisses all cat
 api.nvim_create_user_command("CatDismiss", function()
+  for _, w in ipairs(all_walkers) do
+    close_state(w)
+  end
+  all_walkers = {}
   wander_stop()
-  walk_stop()
-  print("Cat(s) went to sleep 😴")
+  print("All your cats went to sleep 😴")
 end, {})
 
