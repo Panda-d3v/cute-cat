@@ -23,6 +23,16 @@ Try `:CatWalk N` (if no N is submitted it will put only 1 more cat on your scree
 
 `:CatDismiss` to get rid of all the cats in your Neovim, don't do this, cats are cute.
 
+## Install
+Using lazy:
+```
+  {"Panda-d3v/nvim-cute-cat",
+    config = function()
+        require("cat")
+    end
+  },
+```
+
 
 ## Required (version/dependencies)
 Neovim 0.8+ : needs floating windows (nvim_open_win), timers (vim.fn.timer_start), and Lua API (vim.api).
