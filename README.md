@@ -34,7 +34,7 @@ Using lazy:
 ```
   {"Panda-d3v/cute-cat.nvim",
     config = function()
-        require("cat")
+        require("cute-cat")
     end
   },
 ```
