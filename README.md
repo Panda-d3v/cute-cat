@@ -31,14 +31,21 @@ I prefer walking cats, but too each their own! You also have teleporting cats!
 
 ## Install
 Using lazy:
-```
+```lua
   {"Panda-d3v/cute-cat.nvim",
-    config = function()
-        require("cute-cat")
-    end
+    opts = {}
   },
 ```
+It won't automatically launch the cat if you don't write the `opts = {}` part
 
+The opts are the following :
+```lua
+M.config = {
+  status = true,   -- whether Status Cat shows up on startup
+  walkers = 0,     -- number of Walk Cats to spawn automatically
+  teleporters = 0, -- number of Teleport Cats to spawn automatically
+}
+```
 
 ## Required (version/dependencies)
 Neovim 0.8+ : needs floating windows (nvim_open_win), timers (vim.fn.timer_start), and Lua API (vim.api).
