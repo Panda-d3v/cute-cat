@@ -1,6 +1,16 @@
 -- cats.lua — cozy cats for Neovim
 -- partner's herd: status cat, wander cat, walk cat
 
+local M = {}
+
+-- options for the user
+M.config = {
+  status = true,
+  walkers = 0,
+  teleporters = 0
+}
+
+
 local api, fn = vim.api, vim.fn
 
 -- =====================================================
@@ -284,9 +294,6 @@ api.nvim_create_autocmd("DiagnosticChanged", {
   end,
 })
 
--- start relaxed by default
--- where the program starts
-vim.schedule(function() status_insert_anim(frames_relax_cat) end)
 
 api.nvim_create_user_command("CatStatusOff", function()
   status.active = false
@@ -465,3 +472,30 @@ api.nvim_create_user_command("CatDismiss", function()
   print("All your cats went to sleep 😴")
 end, {})
 
+
+-- ========================================================================
+-- ========================================================================
+-- Setup
+-- ========================================================================
+-- ========================================================================
+function M.setup(opts)
+  M.config = vim.tbl_deep_extend("force", M.config, opts or {})
+
+  -- Status cat toggle
+  if M.config.status then
+      -- start relaxed by default
+      status_insert_anim(frames_relax_cat)
+  end
+
+  -- Startup walkers
+  if M.config.walkers > 0 then
+    spawn_walkers(M.config.walkers)
+  end
+
+  -- Startup teleport cats
+  if M.config.teleporters > 0 then
+    spawn_teleportCats(M.config.teleporters)
+  end
+end
+
+return M
