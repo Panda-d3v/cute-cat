@@ -43,6 +43,8 @@ Using lazy:
 ## Required (version/dependencies)
 Neovim 0.8+ : needs floating windows (nvim_open_win), timers (vim.fn.timer_start), and Lua API (vim.api).
 If you’re on 0.9+, you also get zindex support for layering cats.
+
+Supporting utf-8 in your terminal and in Neovim is best for this plugin (not tested otherwise).
 #### Recommended :
 An LSP client configured so you can see the angry bad_cat when errors are present.
 
