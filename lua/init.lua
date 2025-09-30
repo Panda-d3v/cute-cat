@@ -498,11 +498,4 @@ function M.setup(opts)
   end
 end
 
-vim.schedule(function()
-  if not M._initialized then
-    M.setup()
-    M._initialized = true
-  end
-end)
-
 return M
