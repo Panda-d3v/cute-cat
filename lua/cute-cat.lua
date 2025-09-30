@@ -18,11 +18,44 @@ local normal2_face = {
   [[ > ^ >  ]],
 }
 
-local relax_cat = {
+local normal3_face = {
+  [[ /\_/   ]],
+  [[( o.o ) ]],
+  [[ > ˇ >  ]],
+}
+
+local normal4_face = {
+  [[ /\_/   ]],
+  [[( o.o ) ]],
+  [[ < ˇ >  ]],
+}
+
+local relax_face = {
   [[|\__/,|   (`\ ]],
-  [[| . |   ) ) ]],
+  [[|• . •|   ) ) ]],
+  [[(  ‹  )o ("(  ]],
+}
+
+
+local relax2_face = {
+  [[|\__/,|   /`) ]],
+  [[|• . •|   ( ( ]],
+  [[(  ›  )o ("(  ]],
+}
+
+
+local relax3_face = {
+  [[|\__/,|   /`) ]],
+  [[| . |   ( ( ]],
   [[(  -  )o ("(  ]],
 }
+
+local teleport_face = {
+  [[ /\_/\  ]],
+  [[( @.@ ) ]],
+  [[ > ~ <  ]],
+}
+
 
 local visual_face = {
   [[ /\_/\  ]],
@@ -30,13 +63,53 @@ local visual_face = {
   [[ > ° <  ]],
 }
 
-local bad_cat = {
+local visual2_face = {
+  [[ /\_/\  ]],
+  [[( o.o ) ]],
+  [[>> o << ]],
+}
+
+local bad_face = {
   [[ /\_/\  ]],
   [[( -.- ) ]],
   [[ > ^ <  ]],
 }
 
-local frames_normal_cat = { normal_face, normal2_face }
+local bad2_face = {
+  [[ /\_/\  ]],
+  [[( >.< ) ]],
+  [[ > - <  ]],
+}
+
+local bad3_face = {
+  [[ /\_/\  ]],
+  [[( ¬.¬ ) ]],
+  [[ > - <  ]],
+}
+
+local bad4_face = {
+  [[ /\_/\  ]],
+  [[( x.x ) ]],
+  [[ > o <  ]],
+}
+
+local bad5_face = {
+  [[ /\_/\  ]],
+  [[( π.π ) ]],
+  [[ > - <  ]],
+}
+
+local funny_face = {
+  [[ /\_/\  ]],
+  [[( >.< ) ]],
+  [[ > u <  ]],
+}
+
+
+local frames_normal_cat = { normal_face, normal2_face, normal3_face, normal4_face}
+local frames_relax_cat = {relax_face, relax2_face}
+local frames_visual_cat = {visual_face, visual2_face}
+local frames_bad_cat = {bad_face, bad2_face, bad3_face, bad4_face, bad5_face}
 
 -- =====================================================
 -- Utils
@@ -124,9 +197,8 @@ local function status_set(face)
   status_show(face)
 end
 
-local function status_insert_anim()
+local function status_insert_anim(frames)
   if not status.active then return end
-  local frames = frames_normal_cat
   local i = 1
   if status.timer then fn.timer_stop(status.timer) end
   status_show(frames[i])
@@ -134,7 +206,10 @@ local function status_insert_anim()
   status.timer = fn.timer_start(600, function()
     vim.schedule(function()
       if not status.active then return end
-      status_show(frames[i])
+      if math.random() < 0.001 then status_show(funny_face) -- Congrats! You found an easter egg
+      else
+        status_show(frames[i])
+      end
       i = i % #frames + 1
     end)
   end, { ['repeat'] = -1 })
@@ -150,14 +225,14 @@ api.nvim_create_autocmd("InsertEnter", {
   callback = function()
     if not status.active then return end
     -- if has_errors() then status_set(bad_cat) else status_insert_anim() end
-    status_insert_anim()
+    status_insert_anim(frames_normal_cat)
   end,
 })
 
 api.nvim_create_autocmd("InsertLeave", {
   callback = function()
     if not status.active then return end
-    if has_errors() then status_set(bad_cat) else status_set(relax_cat) end
+    if has_errors() then status_insert_anim(frames_bad_cat) else status_insert_anim(frames_relax_cat) end
   end,
 })
 
@@ -167,9 +242,9 @@ vim.api.nvim_create_autocmd("ModeChanged", {
   callback = function()
     if not status.active then return end
     if has_errors() then
-      status_set(bad_cat)
+      status_insert_anim(frames_bad_cat)
     else
-      status_set(visual_face)
+      status_insert_anim(frames_visual_cat)
     end
   end,
 })
@@ -180,13 +255,13 @@ vim.api.nvim_create_autocmd("ModeChanged", {
   callback = function()
     if not status.active then return end
     if has_errors() then
-      status_set(bad_cat)
+      status_insert_anim(frames_bad_cat)
     else
       local m = vim.fn.mode()
       if m:match("i") then
-        status_insert_anim()   -- if you landed in insert, keep the wiggle
+        status_insert_anim(frames_normal_cat)   -- if you landed in insert, keep the wiggle
       else
-        status_set(relax_cat)  -- otherwise chill in normal
+        status_insert_anim(frames_relax_cat)  -- otherwise chill in normal
       end
     end
   end,
@@ -198,20 +273,20 @@ api.nvim_create_autocmd("DiagnosticChanged", {
     if not status.active then return end
     local m = fn.mode()
     if m:match("i") then
-      status_insert_anim()
+      status_insert_anim(frames_normal_cat)
     elseif has_errors() then
-      status_set(bad_cat)
+      status_insert_anim(frames_bad_cat)
     elseif m:match("[vV\22]") then
       status_set(visual_face)
     else
-      status_set(relax_cat)
+      status_insert_anim(frames_relax_cat)
     end
   end,
 })
 
 -- start relaxed by default
 -- where the program starts
-vim.schedule(function() status_set(relax_cat) end)
+vim.schedule(function() status_insert_anim(frames_relax_cat) end)
 
 api.nvim_create_user_command("CatStatusOff", function()
   status.active = false
@@ -220,16 +295,20 @@ end, {})
 
 api.nvim_create_user_command("CatStatusOn", function()
   status.active = true
-  status_set(relax_cat)
+  status_insert_anim(frames_relax_cat)
 end, {})
 
 -- ========================================================================
--- Wander Cat (teleports every 2s)
+-- Teleport Cat (teleports every 2s)
 -- ========================================================================
-local wander = { buf = nil, win = nil, timer = nil, shown = false }
 
-local function wander_start()
-  if wander.timer then
+local all_teleportCats = {}
+
+local function start_teleportCat()
+
+  local teleportCat = { buf = nil, win = nil, timer = nil, shown = false }
+
+  if teleportCat.timer then
     print("Wander cat already active 🐈")
     return
   end
@@ -238,30 +317,45 @@ local function wander_start()
   local max_col = math.max(0, vim.o.columns - 7)
   local row = math.random(0, max_row)
   local col = math.random(0, max_col)
-  ensure_buf_win(wander, normal_face, { row = row, col = col })
+  ensure_buf_win(teleportCat, normal_face, { row = row, col = col })
 
-  wander.timer = fn.timer_start(2000, function()
-    vim.schedule(function()
-      if not (wander.win and api.nvim_win_is_valid(wander.win)) then return end
-      local mr = math.max(0, vim.o.lines - 3)
-      local mc = math.max(0, vim.o.columns - 7)
-      local r = math.random(0, mr)
-      local c = math.random(0, mc)
-      api.nvim_win_set_config(wander.win, {
+  local function loop()
+    if not (teleportCat.win and api.nvim_win_is_valid(teleportCat.win)) then return end
+      max_row = math.max(0, vim.o.lines - 3)
+      max_col = math.max(0, vim.o.columns - 7)
+      row = math.random(0, max_row)
+      col = math.random(0, max_col)
+      api.nvim_win_set_config(teleportCat.win, {
         relative = "editor",
-        row = r,
-        col = c,
+        row = row,
+        col = col,
         width = 7,
         height = 3,
       })
-      -- playful blink on hop
-      set_lines(wander, math.random() < 0.5 and normal_face or normal2_face)
-    end)
-  end, { ['repeat'] = -1 })
+      set_lines(teleportCat, teleport_face)
+      local delay = math.random(1000, 1600)
+      teleportCat.timer = vim.fn.timer_start(delay, function() vim.schedule(loop) end)
+  end
+  loop()
+  table.insert(all_teleportCats, teleportCat)
 end
 
+
+
 local function wander_stop()
-  close_state(wander)
+  for _, w in ipairs(all_teleportCats) do
+    close_state(w)
+  end
+  all_teleportCats = {}
+
+end
+
+
+local function spawn_teleportCats(n)
+  n = tonumber(n) or 1
+  for _ = 1, n do
+    start_teleportCat()
+  end
 end
 
 
@@ -356,7 +450,7 @@ end
 -- ========================================================================
 -- ========================================================================
 
-api.nvim_create_user_command("CatTeleport", function() wander_start() end, {})
+api.nvim_create_user_command("CatTeleport", function(opts) spawn_teleportCats(opts.args) end, { nargs = "?"})
 
 -- Make plenty of cats able to walk
 api.nvim_create_user_command("CatWalk", function(opts) spawn_walkers(opts.args) end, { nargs= "?"})
