@@ -11,6 +11,8 @@ Otherwise do :Cat and look for completion!
 `:CatStatusOff`
 `:CatStatusOn`
 `:CatWalk` or `:CatWalk N`
+`:CatTeleport` or `CatTeleport N`
+`:CatDismiss` : dismisses all walking and teleporting cats, don't do this, cats are cute.
 
 ## Status cat
 - Cool cat when you're just in normal mode.
@@ -20,13 +22,17 @@ Otherwise do :Cat and look for completion!
 
 ## Walking cat
 Try `:CatWalk N` (if no N is submitted it will put only 1 more cat on your screen), and look at all these cool cats on your screen! They'll help you code for sure (no guarantee)
+`:CatDismiss` to get rid of all the cats in your Neovim.
 
-`:CatDismiss` to get rid of all the cats in your Neovim, don't do this, cats are cute.
+## Teleporting cat
+I prefer walking cats, but too each their own! You also have teleporting cats!
+
+`:CatTeleport N`
 
 ## Install
 Using lazy:
 ```
-  {"Panda-d3v/nvim-cute-cat",
+  {"Panda-d3v/cute-cat.nvim",
     config = function()
         require("cat")
     end
